@@ -10,7 +10,7 @@ const db = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "12345",
-  database: "storeDB", // The database name
+  database: "reportsDB", // The database name
 });
 
 db.connect((err) => {
@@ -29,12 +29,12 @@ app.post("/generate-report", async (req, res) => {
 
     // console.log("Fetched users:", data?.users);
     const users = new Map();
-    const products = new Set();
+    const products = new Map();
     const purchases = [];
 
     data.forEach((record) => {
       const { order_no, name, user_phone } = record;
-      console.log("Fetched users also:", order_no, name, user_phone);
+      // console.log("Fetched users also:", order_no, name, user_phone);
       if (!users.has(record.order_no)) {
         users.set(record.order_no, {
           id: record.order_no,
@@ -42,7 +42,50 @@ app.post("/generate-report", async (req, res) => {
           email: record.user_phone, // You might want to adjust this
         });
       }
-      console.log("Fetched users:", users);
+
+      if (!products.has(record.product_code)) {
+        products.set(record.product_code, {
+          id: record.product_code,
+          name: record.product_name,
+          price: parseFloat(record.product_price),
+        });
+      }
+      // console.log("Fetched prodcuts:", products);
+      purchases.push({
+        userId: record.order_no,
+        productId: record.product_code,
+        quantity: record.purchase_quantity,
+        total: parseFloat(record.product_price) * record.purchase_quantity,
+      });
+      console.log("Fetched purchase:", purchases);
+    });
+    // Insert users
+    users.forEach((user) => {
+      db.query("INSERT IGNORE INTO Users SET ?", user, (err) => {
+        if (err) throw err;
+      });
+    });
+    // Insert products
+    products.forEach((product) => {
+      db.query("INSERT IGNORE INTO Products SET ?", product, (err) => {
+        if (err) throw err;
+      });
+    });
+
+    // Insert purchases
+    purchases.forEach((purchase) => {
+      db.query(
+        "INSERT INTO PurchaseHistory (userId, productId, quantity, total) VALUES (?, ?, ?, ?)",
+        [
+          purchase.userId,
+          purchase.productId,
+          purchase.quantity,
+          purchase.total,
+        ],
+        (err) => {
+          if (err) throw err;
+        }
+      );
     });
 
     res.send("Data fetched and stored successfully!");
@@ -51,6 +94,7 @@ app.post("/generate-report", async (req, res) => {
     res.status(500).send("Failed to fetch data.");
   }
 });
+
 // Generate Report
 app.get("/report", (req, res) => {
   const query = `
@@ -61,7 +105,9 @@ app.get("/report", (req, res) => {
       JOIN Products ON PurchaseHistory.productId = Products.id
       ORDER BY PurchaseHistory.total DESC;
     `;
+
   db.query(query, (err, result) => {
+    console.log("report query", result);
     if (err) throw err;
     res.json(result);
   });
