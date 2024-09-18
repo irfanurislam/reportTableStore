@@ -1,10 +1,12 @@
 const express = require("express");
 const axios = require("axios");
+var cors = require("cors");
 const mysql = require("mysql2");
 const app = express();
 
 const port = 5000;
-
+app.use(cors());
+app.use(express.json());
 // MySQL connection
 const db = mysql.createConnection({
   host: "localhost",
