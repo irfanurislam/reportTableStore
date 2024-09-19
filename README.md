@@ -11,7 +11,7 @@
 ### Frontend
 1. Navigate to the `reportTableClient` folder Clone `https://github.com/irfanurislam/reportTableClient.git`.
 2. Run `npm install`.
-3. Start the React app with `npm start`.
+3. Start the React app with `npm run dev`.
 
 ## API Integration
 The system fetches data from the API, stores it in the database, and generates a report on demand.
